@@ -91,11 +91,24 @@ _PT_RE = re.compile(r"\bpt[\s-]?(19|23|26)[\s-]?([a-z])?\b", re.IGNORECASE)
 _CORNELL_RE = re.compile(r"\bcornell\b", re.IGNORECASE)
 _UC61_RE = re.compile(r"\buc[\s-]?61\b", re.IGNORECASE)
 _M62_RE = re.compile(r"\bm[\s-]?62\b", re.IGNORECASE)
-# Model 24: "24" plus an alphanumeric suffix (24R, 24W, 24C8, 24C8C,
-# 24CR, 24CRC, 24R-46, etc.).
-_MODEL24_RE = re.compile(r"\b24[\s-]?([a-z]{1,2}\d{0,2}(?:[\s-]?\d{1,2})?[a-z]{0,1})\b", re.IGNORECASE)
-# Model 22: "22" plus an optional short suffix (22C7, 22C7A, 22C7B, 22C7C).
-_MODEL22_RE = re.compile(r"\b22[\s-]?([a-z]\d{0,2}[a-z]{0,1})?\b", re.IGNORECASE)
+# KR-34: the Kreider-Reisner biplane trainer Fairchild acquired in 1929 and
+# continued building under its own name - confirmed live ("1929 Fairchild
+# KR-34B2"), not something guessed in advance. An optional letter+digit
+# sub-variant suffix (B2, C1, D2, etc.) is directly attached with no
+# separator, so no trailing \b right after "34" - that would reject "B2".
+_KR34_RE = re.compile(r"\bkr[\s-]?34([a-z]\d?)?\b", re.IGNORECASE)
+# Model 24: "24" plus an optional alphanumeric suffix (24R, 24W, 24C8,
+# 24C8C, 24CR, 24CRC, 24R-46, or bare "24" with no suffix at all - the
+# whole suffix group is optional so a bare "24" matches too). Only a
+# hyphen (not a space) is allowed directly after "24" before the suffix
+# starts, since allowing a space there let unrelated following words
+# false-match as a suffix - confirmed live ("1946 Fairchild 24 wJacobs"
+# wrongly matched "wJ" as a suffix before this was tightened, since
+# "with Jacobs [engine]" just happened to start with a letter).
+_MODEL24_RE = re.compile(r"\b24-?([a-z]{1,2}\d{0,2}(?:[\s-]?\d{1,2})?[a-z]{0,1})?\b", re.IGNORECASE)
+# Model 22: "22" plus an optional short suffix (22C7, 22C7A, 22C7B, 22C7C),
+# same hyphen-only-separator reasoning as Model 24 above.
+_MODEL22_RE = re.compile(r"\b22-?([a-z]\d{0,2}[a-z]{0,1})?\b", re.IGNORECASE)
 
 
 def _extract_model(title: str) -> tuple[str, str] | None:
@@ -111,6 +124,10 @@ def _extract_model(title: str) -> tuple[str, str] | None:
         return MAKE, "UC-61"
     if _M62_RE.search(title):
         return MAKE, "M-62"
+    match = _KR34_RE.search(title)
+    if match:
+        suffix = match.group(1)
+        return MAKE, f"KR-34{suffix.upper()}" if suffix else "KR-34"
 
     match = _MODEL24_RE.search(title)
     if match:
